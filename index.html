@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Quest System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    .quest-container {
+      margin-top: 20px;
+      padding: 20px;
+      border: 1px solid #ccc;
+      min-height: 200px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Dynamic Quest System</h1>
+  <p>System Completion Rate: <span id="scr">0.000</span></p>
+  <div class="quest-container" id="quest-container">
+    <!-- Current quest will be loaded here -->
+  </div>
+  <button id="complete-quest-btn">Complete Quest</button>
+
+  <script>
+    let systemCompletionRate = 0.0; // Start at 0
+    const questsPerFile = 1000; // Number of quests per HTML file
+    const questContainer = document.getElementById('quest-container');
+    const scrDisplay = document.getElementById('scr');
+
+    // Function to calculate quest file and quest index
+    function getQuestDetails(scr) {
+      const questNumber = Math.floor(scr * 1000); // SCR * 1000 gives the quest number
+      const fileIndex = Math.floor(questNumber / questsPerFile); // File containing the quest
+      const questIndex = questNumber % questsPerFile; // Index of quest within the file
+      return { fileIndex, questIndex, questNumber };
+    }
+
+    // Function to load the quest dynamically
+    function loadQuest(scr) {
+      const { fileIndex, questIndex, questNumber } = getQuestDetails(scr);
+      const fileName = `quests${fileIndex}.html`;
+
+      // Fetch the appropriate file
+      fetch(fileName)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to load quest file');
+          }
+          return response.text();
+        })
+        .then(data => {
+          // Parse the HTML string into a DOM element
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(data, 'text/html');
+
+          // Find the specific quest element
+          const quest = doc.querySelector(`#quest-${questIndex}`);
+          if (quest) {
+            questContainer.innerHTML = ''; // Clear previous quest
+            questContainer.appendChild(quest); // Append the new quest
+          } else {
+            questContainer.innerHTML = `<p>Quest not found!</p>`;
+          }
+        })
+        .catch(error => {
+          questContainer.innerHTML = `<p>Error: ${error.message}</p>`;
+        });
+
+      // Update SCR display
+      scrDisplay.textContent = scr.toFixed(3);
+    }
+
+    // Function to complete a quest
+    function completeQuest() {
+      systemCompletionRate += 0.001; // Increment SCR
+      loadQuest(systemCompletionRate);
+    }
+
+    // Attach event listener to the button
+    document.getElementById('complete-quest-btn').addEventListener('click', completeQuest);
+
+    // Initial load
+    loadQuest(systemCompletionRate);
+  </script>
+</body>
+</html>
